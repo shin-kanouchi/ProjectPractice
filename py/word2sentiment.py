@@ -11,15 +11,18 @@ from chainer import optimizers
 import MeCab
 tagger = MeCab.Tagger("-Owakati")
 import time
+from gensim.models import word2vec
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', '-r', default='../data/ankABCD.txt', type=str)
+parser.add_argument('--w2v', '-w', default='../data/matrix100.model2', type=str)
 parser.add_argument('--epoch', '-e', default=30, type=int, help='number of epochs')
-parser.add_argument('--units', '-u', default=50, type=int, help='number of units per layer')
+parser.add_argument('--units', '-u', default=100, type=int, help='number of units per layer')
 args = parser.parse_args()
 
 batchsize = 25
+matrix_file = args.w2v
 EPOCH = args.epoch
 n_units = args.units
 ans_unit = 3
@@ -116,7 +119,13 @@ model = chainer.FunctionSet(
 )
 # Setup optimizer
 optimizer = optimizers.Adam()
-optimizer.setup(model.collect_parameters())
+optimizer.setup(model)
+
+word2vec_matrix = word2vec.Word2Vec.load(matrix_file)
+for key in vocab.keys():
+    key_u = key.decode("utf-8")
+    if key_u in word2vec_matrix.vocab.keys():
+        model.embed.W.data[vocab[key]] = word2vec_matrix[key_u]
 
 
 start_at = time.time()
